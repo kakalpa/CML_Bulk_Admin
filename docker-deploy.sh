@@ -32,16 +32,16 @@ else
 fi
 
 # Run the container
-echo "🏃 Running container on port $PORT..."
+echo "🏃 Running container on port $PORT (mapped to 443 HTTPS)..."
 docker run -d \
   --name $CONTAINER_NAME \
-  -p $PORT:80 \
+  -p $PORT:443 \
   --restart unless-stopped \
   $IMAGE_NAME
 
 if [ $? -eq 0 ]; then
     echo "✨ Deployment complete!"
-    echo "🌐 Access the dashboard at: http://localhost:$PORT"
+    echo "🌐 Access the dashboard at: https://localhost:$PORT"
 else
     echo "❌ Failed to start container!"
     exit 1

@@ -28,7 +28,7 @@ export function OrphanedLabs() {
       const activeUserIds = new Set(usersRes.data.map((u: any) => u.id))
 
       // 2. Get all labs
-      const labsRes = await api.get('/labs')
+      const labsRes = await api.get('/labs?show_all=true')
       const labIds = labsRes.data as string[]
 
       const orphanedList: OrphanedLab[] = []
@@ -95,48 +95,50 @@ export function OrphanedLabs() {
           <CardTitle>Detected Orphans</CardTitle>
           <CardDescription>Labs that no longer have a valid owner registered in the system.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Lab Title</TableHead>
-                <TableHead>Original Owner</TableHead>
-                <TableHead>Nodes</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {orphans.map((lab) => (
-                <TableRow key={lab.id}>
-                  <TableCell className="font-medium">{lab.title}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center text-muted-foreground italic">
-                      <UserX className="h-3 w-3 mr-1" />
-                      {lab.owner_username}
-                    </div>
-                  </TableCell>
-                  <TableCell>{lab.node_count}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDeleteOrphan(lab.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {orphans.length === 0 && !loading && (
+        <CardContent className="p-0 sm:p-6">
+          <div className="max-h-[600px] overflow-auto">
+            <Table>
+              <TableHeader className="sticky top-0 bg-card z-10 shadow-sm">
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-12">
-                    <div className="flex flex-col items-center justify-center space-y-2">
-                      <div className="p-3 bg-status-success/10 rounded-full text-status-success">
-                        <RefreshCcw className="h-6 w-6" />
-                      </div>
-                      <p className="text-muted-foreground">No orphaned labs detected. Your system is clean!</p>
-                    </div>
-                  </TableCell>
+                  <TableHead>Lab Title</TableHead>
+                  <TableHead>Original Owner</TableHead>
+                  <TableHead>Nodes</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {orphans.map((lab) => (
+                  <TableRow key={lab.id}>
+                    <TableCell className="font-medium">{lab.title}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center text-muted-foreground italic">
+                        <UserX className="h-3 w-3 mr-1" />
+                        {lab.owner_username}
+                      </div>
+                    </TableCell>
+                    <TableCell>{lab.node_count}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDeleteOrphan(lab.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {orphans.length === 0 && !loading && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-12">
+                      <div className="flex flex-col items-center justify-center space-y-2">
+                        <div className="p-3 bg-status-success/10 rounded-full text-status-success">
+                          <RefreshCcw className="h-6 w-6" />
+                        </div>
+                        <p className="text-muted-foreground">No orphaned labs detected. Your system is clean!</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

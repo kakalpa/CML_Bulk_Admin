@@ -25,15 +25,11 @@ export function GroupManager() {
     setLoading(true)
     try {
       const res = await api.get('/groups')
-      const groupData = await Promise.all(res.data.map(async (id: string) => {
-        const detail = await api.get(`/groups/${id}`)
-        const members = await api.get(`/groups/${id}/users`)
-        return {
-          id: detail.data.id,
-          name: detail.data.name,
-          description: detail.data.description,
-          members_count: members.data.length
-        }
+      const groupData = res.data.map((group: any) => ({
+        id: group.id,
+        name: group.name,
+        description: group.description || "",
+        members_count: group.members?.length || 0
       }))
       setGroups(groupData)
     } catch (err) {
@@ -107,45 +103,47 @@ export function GroupManager() {
             <CardTitle className="text-lg">Existing Groups</CardTitle>
             <CardDescription>Overview of all groups currently registered in CML.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Group Name</TableHead>
-                  <TableHead>Members</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {groups.map((group) => (
-                  <TableRow key={group.id}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center">
-                        <Shield className="h-4 w-4 mr-2 text-primary/60" />
-                        {group.name}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="bg-primary/10 text-primary px-2 py-1 rounded-md text-xs font-bold">
-                        {group.members_count} Students
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDeleteGroup(group.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {groups.length === 0 && (
+          <CardContent className="p-0 sm:p-6">
+            <div className="max-h-[600px] overflow-auto">
+              <Table>
+                <TableHeader className="sticky top-0 bg-card z-10 shadow-sm">
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
-                      No groups found.
-                    </TableCell>
+                    <TableHead>Group Name</TableHead>
+                    <TableHead>Members</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {groups.map((group) => (
+                    <TableRow key={group.id}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center">
+                          <Shield className="h-4 w-4 mr-2 text-primary/60" />
+                          {group.name}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="bg-primary/10 text-primary px-2 py-1 rounded-md text-xs font-bold">
+                          {group.members_count} Students
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDeleteGroup(group.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {groups.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                        No groups found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>

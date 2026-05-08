@@ -13,7 +13,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://172.16.50.128', // Use HTTPS for CML2
+        target: 'https://cml.dc.turkuamk.fi', // Use HTTPS for CML2
         changeOrigin: true,
         secure: false, // Bypass SSL certificate verification for self-signed certs
       }

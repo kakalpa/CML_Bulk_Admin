@@ -54,7 +54,7 @@ export function LabLifecycle() {
   const handleFetchLabs = async () => {
     setIsProcessing(true)
     try {
-      const res = await api.get('/labs')
+      const res = await api.get('/labs?show_all=true')
       const ids = res.data as string[]
       
       const labDetails = await Promise.all(ids.map(async (id) => {
@@ -129,7 +129,15 @@ export function LabLifecycle() {
 
   const handleBulkWipe = async () => {
     setIsProcessing(true)
+    let skippedCount = 0;
+    
     for (const id of selected) {
+      const labInfo = labs.find(l => l.id === id);
+      if (labInfo && labInfo.state !== 'STOPPED') {
+        skippedCount++;
+        continue;
+      }
+      
       try {
         await api.put(`/labs/${id}/wipe`)
       } catch (err) {
@@ -138,6 +146,10 @@ export function LabLifecycle() {
     }
     await handleFetchLabs()
     setIsProcessing(false)
+    
+    if (skippedCount > 0) {
+      alert(`Successfully wiped eligible labs. Skipped ${skippedCount} lab(s) because they must be STOPPED before wiping.`);
+    }
   }
 
   const handleBulkDelete = async () => {
@@ -154,6 +166,37 @@ export function LabLifecycle() {
     await handleFetchLabs()
     setIsProcessing(false)
     setSelected(new Set())
+  }
+
+  const handleExportDefs = async () => {
+    const targetLabs = selected.size > 0 ? filteredLabs.filter(l => selected.has(l.id)) : filteredLabs;
+    if (targetLabs.length === 0) return;
+    
+    if (!confirm(`Download ${targetLabs.length} lab definition(s)?`)) return;
+
+    setIsProcessing(true);
+    for (const lab of targetLabs) {
+      try {
+        const res = await api.get(`/labs/${lab.id}/download`, { responseType: 'text' });
+        
+        // Create a blob and trigger download
+        const blob = new Blob([res.data], { type: 'text/yaml' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${lab.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_def.yaml`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        // Slight delay to prevent browser from blocking multiple rapid downloads
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (err) {
+        console.error(`Failed to download lab ${lab.id}`, err);
+      }
+    }
+    setIsProcessing(false);
   }
 
   const impact = calculateImpact()
@@ -189,7 +232,7 @@ export function LabLifecycle() {
               <RefreshCcw className={`h-4 w-4 mr-2 ${isProcessing ? 'animate-spin' : ''}`}/> 
               Refresh
             </Button>
-            <Button variant="outline" size="sm" disabled={authStatus !== 'connected' || isProcessing}><Download className="h-4 w-4 mr-2"/> Export Defs</Button>
+            <Button variant="outline" size="sm" onClick={handleExportDefs} disabled={authStatus !== 'connected' || isProcessing}><Download className="h-4 w-4 mr-2"/> Export Defs</Button>
           </div>
         </CardHeader>
         

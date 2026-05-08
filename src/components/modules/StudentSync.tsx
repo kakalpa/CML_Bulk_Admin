@@ -1,5 +1,5 @@
-import React, { useState } from "react"
-import { UploadCloud, Users, Trash2, KeyRound } from "lucide-react"
+import React, { useState, useEffect } from "react"
+import { UploadCloud, Users, Trash2, KeyRound, FolderPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -25,7 +25,20 @@ export function StudentSync() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [progress, setProgress] = useState(0)
   
+  const [groups, setGroups] = useState<{id: string, name: string}[]>([])
+  const [selectedAssignGroup, setSelectedAssignGroup] = useState<string>("")
+  
   const { status: authStatus } = useAuthStore()
+
+  useEffect(() => {
+    if (authStatus === 'connected') {
+      api.get('/groups').then(res => {
+        const groupData = res.data.map((g: any) => ({ id: g.id, name: g.name }))
+        setGroups(groupData)
+        if (groupData.length > 0) setSelectedAssignGroup(groupData[0].id)
+      }).catch(err => console.error("Failed to fetch groups for dropdown", err))
+    }
+  }, [authStatus])
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -80,15 +93,28 @@ export function StudentSync() {
   const handleFetchExisting = async () => {
     setIsProcessing(true)
     try {
-      const res = await api.get('/users')
-      const existing: Student[] = res.data.map((u: any) => ({
-        username: u.username,
-        fullname: u.fullname || '',
-        email: u.email || '',
-        group: u.groups?.[0] || 'unknown',
-        id: u.id,
-        status: 'success'
-      }))
+      // Fetch both users and groups to map UUIDs to names
+      const [usersRes, groupsRes] = await Promise.all([
+        api.get('/users'),
+        api.get('/groups')
+      ])
+
+      const groupMap = groupsRes.data.reduce((acc: any, g: any) => {
+        acc[g.id] = g.name
+        return acc
+      }, {})
+
+      const existing: Student[] = usersRes.data.map((u: any) => {
+        const groupId = u.groups?.[0]
+        return {
+          username: u.username,
+          fullname: u.fullname || '',
+          email: u.email || '',
+          group: groupId ? (groupMap[groupId] || groupId) : 'unknown',
+          id: u.id,
+          status: 'success'
+        }
+      })
       
       setStudents(prev => {
         const merged = [...prev]
@@ -195,6 +221,49 @@ export function StudentSync() {
     
     setIsProcessing(false)
     alert(`Password updated for ${completed} users.`)
+  }
+
+  const handleBulkAssignGroup = async () => {
+    if (selected.size === 0 || !selectedAssignGroup) return
+    setIsProcessing(true)
+    setProgress(0)
+
+    try {
+      // 1. Get existing members of the target group
+      const groupRes = await api.get(`/groups/${selectedAssignGroup}`)
+      const currentMembers = new Set<string>(groupRes.data.members || [])
+      
+      const targetStudents = students.filter(s => selected.has(s.username))
+      
+      // 2. Resolve IDs for target students and add to the set
+      for (const student of targetStudents) {
+        if (!student.id) {
+          try {
+            const userRes = await api.get(`/users/${student.username}/id`)
+            student.id = userRes.data
+          } catch(e) { continue }
+        }
+        if (student.id) currentMembers.add(student.id)
+      }
+
+      // 3. Patch the group with the newly combined member list
+      await api.patch(`/groups/${selectedAssignGroup}`, {
+        members: Array.from(currentMembers)
+      })
+
+      // Update local state to reflect the new group
+      const groupName = groups.find(g => g.id === selectedAssignGroup)?.name || selectedAssignGroup
+      setStudents(prev => prev.map(s => 
+        selected.has(s.username) ? { ...s, group: groupName } : s
+      ))
+      
+      setSelected(new Set())
+    } catch (err) {
+      console.error("Failed to assign users to group", err)
+      alert("Failed to assign users to group. Check console for details.")
+    }
+
+    setIsProcessing(false)
   }
 
   const handleBulkDelete = async () => {
@@ -322,6 +391,25 @@ export function StudentSync() {
                   <KeyRound className="h-4 w-4 mr-2" />
                   Set Passwords
                 </Button>
+                
+                {groups.length > 0 && (
+                  <div className="flex items-center space-x-1 border-l border-primary/20 pl-2 ml-2">
+                    <select 
+                      className="text-sm bg-transparent border border-input rounded-md px-2 py-1 h-8"
+                      value={selectedAssignGroup}
+                      onChange={(e) => setSelectedAssignGroup(e.target.value)}
+                    >
+                      {groups.map(g => (
+                        <option key={g.id} value={g.id}>{g.name}</option>
+                      ))}
+                    </select>
+                    <Button size="sm" variant="outline" onClick={handleBulkAssignGroup} disabled={isProcessing || authStatus !== 'connected'}>
+                      <FolderPlus className="h-4 w-4 mr-2" />
+                      Assign Group
+                    </Button>
+                  </div>
+                )}
+
                 <Button size="sm" variant="destructive" onClick={handleBulkDelete} disabled={isProcessing || authStatus !== 'connected'}>
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete Selected

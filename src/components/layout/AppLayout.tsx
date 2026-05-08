@@ -65,7 +65,7 @@ export function AppLayout({ children, activeTab, setActiveTab }: AppLayoutProps)
 
         {/* Action Canvas */}
         <main className="flex-1 overflow-auto bg-muted/20 p-6">
-          <div className="max-w-7xl mx-auto h-full">
+          <div className="max-w-7xl mx-auto min-h-full">
             {children}
           </div>
         </main>
