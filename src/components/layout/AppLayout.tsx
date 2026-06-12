@@ -1,6 +1,8 @@
 import React from "react"
-import { Server, Users, Laptop, RotateCcw, Activity, Ghost, HardDrive } from "lucide-react"
+import { Server, Users, Laptop, RotateCcw, Activity, Ghost, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { useAuthStore } from "@/store/auth"
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -9,6 +11,7 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children, activeTab, setActiveTab }: AppLayoutProps) {
+  const disconnect = useAuthStore((state) => state.disconnect)
   const tabs = [
     { id: "students", label: "Student Sync", icon: Users },
     { id: "groups", label: "Group Manager", icon: Users },
@@ -47,8 +50,19 @@ export function AppLayout({ children, activeTab, setActiveTab }: AppLayoutProps)
             )
           })}
         </nav>
-        <div className="p-4 border-t text-xs text-muted-foreground">
-          Cisco Modern UI Engine
+        <div className="p-4 border-t space-y-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={disconnect}
+            className="w-full justify-start"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </Button>
+          <div className="text-xs text-muted-foreground">
+            Cisco Modern UI Engine
+          </div>
         </div>
       </aside>
 

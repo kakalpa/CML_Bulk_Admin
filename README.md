@@ -4,6 +4,14 @@ A high-performance, professional dashboard for managing Cisco Modeling Labs (CML
 
 ![Dashboard Preview](https://raw.githubusercontent.com/kakalpa/CML_Bulk_Admin/main/preview.png)
 
+## 📋 Prerequisites
+
+Before using this dashboard, ensure you have:
+- **Active CML2 controller** running and accessible on your network
+- **Admin credentials** (username and password) for your CML controller
+- **Network connectivity** between your machine and the CML controller
+
+
 ## 🚀 Key Features
 
 ### 👤 Student Sync (Bulk User Management)
@@ -32,12 +40,13 @@ A high-performance, professional dashboard for managing Cisco Modeling Labs (CML
 - **Troubleshooting:** Monitor status codes, response times, and payloads for debugging.
 
 ## 🛠️ Technology Stack
-- **Frontend:** React + Vite + TailwindCSS
+
+- **Frontend:** React 19 + Vite + TailwindCSS (Client-side only)
 - **State Management:** Zustand (with Persistence)
 - **Icons:** Lucide React
-- **API:** Axios with Interceptors
+- **HTTP Client:** Axios with Interceptors
 - **Containerization:** Docker + Nginx
-
+- **Build Tool:** TypeScript + ESLint
 ## 📦 Quick Start with Docker
 
 1. **Clone the repository:**
