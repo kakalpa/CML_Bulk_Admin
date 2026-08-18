@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { api } from '@/lib/api'
 
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000
+
 export interface CMLAuth {
   host: string
   username: string
@@ -11,11 +13,14 @@ export interface CMLAuth {
   error?: string
   version?: string
   license?: string
+  lastActivity?: number
 }
 
 interface AuthState extends CMLAuth {
   setCredentials: (creds: Partial<CMLAuth>) => void
   connect: () => Promise<void>
+  touchSession: () => void
+  checkSession: () => void
   disconnect: () => void
 }
 
@@ -24,9 +29,10 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       host: '172.16.50.128',
       username: 'admin',
-      password: 'root00--',
+      password: 'password',
       token: undefined,
       status: 'disconnected',
+      lastActivity: undefined,
       
       setCredentials: (creds) => set((state) => ({ ...state, ...creds })),
       
@@ -87,7 +93,8 @@ export const useAuthStore = create<AuthState>()(
           set({ 
             status: 'connected', 
             version,
-            license
+            license,
+            lastActivity: Date.now()
           })
         } catch (err: any) {
           console.error("Auth failed:", err.response?.data || err.message)
@@ -99,13 +106,37 @@ export const useAuthStore = create<AuthState>()(
         }
       },
       
+      touchSession: () => set({ lastActivity: Date.now() }),
+
+      checkSession: () => {
+        const { lastActivity, status } = get()
+        if (status !== 'connected' || !lastActivity) return
+        if (Date.now() - lastActivity >= SESSION_TIMEOUT_MS) {
+          set({ status: 'disconnected', version: undefined, license: undefined, password: '', token: undefined, lastActivity: undefined })
+        }
+      },
+
       disconnect: () => {
-        set({ status: 'disconnected', version: undefined, license: undefined, password: '', token: undefined })
+        set({ status: 'disconnected', version: undefined, license: undefined, password: '', token: undefined, lastActivity: undefined })
       }
     }),
     {
       name: 'cml-auth-storage',
-      partialize: (state) => ({ host: state.host, username: state.username }), // Only persist host and username
+      partialize: (state) => ({
+        host: state.host,
+        username: state.username,
+        token: state.token,
+        status: state.status,
+        version: state.version,
+        license: state.license,
+        lastActivity: state.lastActivity
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (!state) return
+        if (state.lastActivity && Date.now() - state.lastActivity >= SESSION_TIMEOUT_MS) {
+          useAuthStore.getState().disconnect()
+        }
+      }
     }
   )
 )
